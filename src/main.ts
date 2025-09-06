@@ -4,9 +4,7 @@ import {
 	PluginSettingTab,
 	Setting,
 	TFile,
-	Menu,
 	Notice,
-	Editor,
 	MarkdownView,
 } from "obsidian";
 import { PublishModal } from "./ui/PublishModal";
@@ -20,6 +18,13 @@ interface PublisherPluginSettings {
 	apiKey: string;
 	author: string;
 	publishedUrlBase: string;
+	s3ApiUrl: string;
+	cdnDomain: string;
+	attachmentFolder: string;
+	s3AccessKeyId: string;
+	s3SecretAccessKey: string;
+	s3BucketName: string;
+	s3Region: string;
 }
 
 const DEFAULT_SETTINGS: PublisherPluginSettings = {
@@ -27,6 +32,13 @@ const DEFAULT_SETTINGS: PublisherPluginSettings = {
 	apiKey: "",
 	author: "",
 	publishedUrlBase: "",
+	s3ApiUrl: "",
+	cdnDomain: "",
+	attachmentFolder: "",
+	s3AccessKeyId: "",
+	s3SecretAccessKey: "",
+	s3BucketName: "",
+	s3Region: "auto",
 };
 
 export default class PublisherPlugin extends Plugin {
@@ -274,6 +286,111 @@ class PublisherSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.publishedUrlBase)
 					.onChange(async (value) => {
 						this.plugin.settings.publishedUrlBase = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		containerEl.createEl("h3", { text: "Image Handling Settings" });
+		containerEl.createEl("p", {
+			text: "Configure these settings to handle embedded images in your notes. Both fields are required for image handling to work.",
+			cls: "setting-item-description",
+		});
+
+		new Setting(containerEl)
+			.setName("S3 API URL")
+			.setDesc("Enter the S3 API URL with your access key for uploading images")
+			.addText((text) =>
+				text
+					.setPlaceholder("https://s3-api.example.com/upload?key=your-api-key")
+					.setValue(this.plugin.settings.s3ApiUrl)
+					.onChange(async (value) => {
+						this.plugin.settings.s3ApiUrl = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("CDN Domain")
+			.setDesc("Enter the CDN domain that serves your S3 bucket images")
+			.addText((text) =>
+				text
+					.setPlaceholder("https://cdn.example.com")
+					.setValue(this.plugin.settings.cdnDomain)
+					.onChange(async (value) => {
+						this.plugin.settings.cdnDomain = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Attachment Folder")
+			.setDesc(
+				"Enter your Obsidian attachment folder path (leave blank to use vault root)"
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("attachments")
+					.setValue(this.plugin.settings.attachmentFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.attachmentFolder = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		containerEl.createEl("h3", { text: "S3 Direct Upload Settings" });
+		containerEl.createEl("p", {
+			text: "Configure these settings to directly upload images to an S3-compatible storage service.",
+			cls: "setting-item-description",
+		});
+
+		new Setting(containerEl)
+			.setName("S3 Bucket Name")
+			.setDesc("Enter the name of your S3 bucket")
+			.addText((text) =>
+				text
+					.setPlaceholder("my-bucket")
+					.setValue(this.plugin.settings.s3BucketName)
+					.onChange(async (value) => {
+						this.plugin.settings.s3BucketName = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("S3 Access Key ID")
+			.setDesc("Enter your S3 access key ID")
+			.addText((text) =>
+				text
+					.setPlaceholder("AKIAXXXXXXXXXXXXXXXX")
+					.setValue(this.plugin.settings.s3AccessKeyId)
+					.onChange(async (value) => {
+						this.plugin.settings.s3AccessKeyId = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("S3 Secret Access Key")
+			.setDesc("Enter your S3 secret access key")
+			.addText((text) =>
+				text
+					.setPlaceholder("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+					.setValue(this.plugin.settings.s3SecretAccessKey)
+					.onChange(async (value) => {
+						this.plugin.settings.s3SecretAccessKey = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("S3 Region")
+			.setDesc("Enter the S3 region (use 'auto' for Cloudflare R2)")
+			.addText((text) =>
+				text
+					.setPlaceholder("auto")
+					.setValue(this.plugin.settings.s3Region)
+					.onChange(async (value) => {
+						this.plugin.settings.s3Region = value || "auto";
 						await this.plugin.saveSettings();
 					})
 			);
