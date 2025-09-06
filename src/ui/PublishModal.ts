@@ -8,6 +8,7 @@ import {
 	Notice,
 	Events,
 } from "obsidian";
+import { processImagesInContent } from "../utils/imageUtils";
 import PublisherPlugin from "../main";
 import { Note } from "../types";
 
@@ -93,27 +94,40 @@ export class PublishModal extends Modal {
 
 	async publish() {
 		try {
+			const notice = new Notice("Processing note...", 0);
+
+			let processedContent = this.content;
+			if (this.plugin.settings.s3ApiUrl && this.plugin.settings.cdnDomain) {
+				notice.setMessage("Processing embedded images...");
+				processedContent = await processImagesInContent(
+					this.content,
+					this.plugin,
+					this.app.vault
+				);
+			}
+
 			const tagRegex = /#([\w-]+)/g;
 			const tags: string[] = [];
 			let match;
-			while ((match = tagRegex.exec(this.content)) !== null) {
+			while ((match = tagRegex.exec(processedContent)) !== null) {
 				tags.push(match[1]);
 			}
 
+			notice.setMessage("Publishing note...");
+
 			const note: Note = {
 				id: this.options.title || this.file.basename,
-				content: this.content,
+				content: processedContent,
 				metadata: {
 					title: this.options.title || this.file.basename,
 					description: this.options.description,
+					author: this.plugin.settings.author,
 					updated: new Date().toISOString(),
 					tags: tags.length > 0 ? tags : undefined,
 				},
 			};
 
 			this.close();
-
-			const notice = new Notice("Publishing note...", 0);
 
 			await this.plugin.apiService.publishNote(note);
 
